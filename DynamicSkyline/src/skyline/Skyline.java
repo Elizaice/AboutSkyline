@@ -1,17 +1,14 @@
 package skyline;
 
-import Data.Data;
 import MyRtree.Key;
 import MyRtree.MBR;
 import MyRtree.Node;
 import MyRtree.Rtree;
 import com.alibaba.fastjson.JSONArray;
+import Data.Data;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 
 public class Skyline {
@@ -42,6 +39,7 @@ public class Skyline {
         printTree(tree.getRoot());
 
 
+
         List<Integer> skyline = bbs(tree,query);
         for(int i = 0 ; i < skyline.size() ; i++){
            for(int j = 0 ; j < f[i].length ; j++)
@@ -51,6 +49,14 @@ public class Skyline {
         System.out.println("Skyline结果id：");
         System.out.println(skyline);
 
+        System.out.println("treejson");
+        String jsonstr = tree.toJson();
+        System.out.println(jsonstr);
+        tree.fromJson(jsonstr);
+        printTree(tree.getRoot());
+        skyline = bbs(tree,query);
+        System.out.println("Skyline结果id：");
+        System.out.println(skyline);
     }
 
     private static float[][] readFile(String points_file, String query_file) throws FileNotFoundException,IOException{
@@ -83,7 +89,6 @@ public class Skyline {
             if(e.getNode().getNodeType()==1||e.getNode().getNodeType()==0){
 
                 for(Key child : e.getChildNode().getKeys()){
-                    System.out.println(child.getId());
                     if(!isDom(child,result))
                         heap.add(child);
                 }
