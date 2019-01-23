@@ -1,7 +1,6 @@
 package MyRtree;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import java.math.BigInteger;
 
 public class Rtree {
     private int M;  //最大节点个数
@@ -30,7 +29,7 @@ public class Rtree {
         this.root = new Node();
     }
 
-    public void insert(int id, float[] point){
+    public void insert(int id, BigInteger[] point){
         MBR mbr = new MBR(point,point);
         Key key = new Key(id,mbr);
         Node leafNode = chooseLeaf(root,key);
@@ -48,17 +47,17 @@ public class Rtree {
     public Node chooseLeaf(Node node, Key key){
         if(node.getNodeType()==2)
             return node;
-        float minExpandedArea = Float.MAX_VALUE;
+        BigInteger minExpandedArea = new BigInteger(Integer.toString(Integer.MAX_VALUE));
         Node l = null;
         for(Key k : node.getKeys()){
             MBR combineArea = k.getMbr().combine(key.getMbr());
-            float expandableArea = combineArea.getArea()-k.getMbr().getArea();
-            if(minExpandedArea>expandableArea){
+            BigInteger expandableArea = combineArea.getArea().subtract(k.getMbr().getArea());
+            if(minExpandedArea.compareTo(expandableArea)>0){
                 minExpandedArea = expandableArea;
                 l = k.getChildNode();
             }
-            else if(minExpandedArea==expandableArea) {
-                if(l.mbr().getArea()>k.getMbr().getArea()){
+            else if(minExpandedArea.compareTo(expandableArea) == 0) {
+                if(l.mbr().getArea().compareTo(k.getMbr().getArea())>0){
                     l=k.getChildNode();
                 }
             }
@@ -94,7 +93,7 @@ public class Rtree {
         }
     }
     //造根节点
-    public void makeRoot(Node N1,Node N2){
+    public void makeRoot(Node N1, Node N2){
         if(N1.getNodeType()!=2)
             N1.setNodeType(1);
         if(N2.getNodeType()!=2)
@@ -109,79 +108,5 @@ public class Rtree {
         newKey.setChildNode(N2);
         root.addKey(newKey);
 
-    }
-
-    public String toJson() {
-        String tree = "{";
-        return tree + dfs(this.root) + "}";
-    }
-
-    public String dfs(Node tmpRoot) {
-        if(tmpRoot == null)
-            return "";
-        String tree = String.format("\"Node\":{\"type\":%d,\"keys\":{", tmpRoot.getNodeType());
-        int keyNum = 0;
-        for(Key key : tmpRoot.getKeys()) {
-            tree = tree + "\"key" + keyNum + "\":{";
-            tree += String.format("\"id\":%d,", key.getId());
-            tree += "\"mbr\":{\"maxdim\":[";
-
-            float[] maxDim = key.getMbr().getMaxDim();
-            for(int i = 0; i < maxDim.length; i++) {
-                if(i != maxDim.length - 1)
-                    tree += maxDim[i] + ",";
-                else
-                    tree += maxDim[i];
-            }
-            tree += "],\"mindim\":[";
-            float[] minDim = key.getMbr().getMinDim();
-            for(int i = 0; i < minDim.length; i++) {
-                if(i != minDim.length - 1)
-                    tree += minDim[i] + ",";
-                else
-                    tree += minDim[i];
-            }
-            tree += "]},\"childnode\":{";
-            tree += dfs(key.getChildNode());
-            tree += "}},";
-            keyNum++;
-        }
-        tree = tree.substring(0, tree.length()-1);
-        tree += "}}";
-        return tree;
-    }
-
-    public void fromJson(String string) {
-        this.root = dfsCreateTree(JSONObject.parseObject(string).get("Node").toString());
-
-    }
-    public Node dfsCreateTree(String string) {
-        JSONObject rootNode = JSONArray.parseObject(string);
-        Node node = new Node();
-        node.setNodeType(Integer.valueOf(rootNode.get("type").toString()));
-        JSONObject keys = JSONArray.parseObject(rootNode.get("keys").toString());
-        for(int i = 0; i < keys.size(); i++) {
-            JSONObject keyJson = JSONArray.parseObject(keys.get("key"+i).toString());
-            int id = Integer.valueOf(keyJson.get("id").toString());
-            JSONObject mbr = JSONArray.parseObject(keyJson.get("mbr").toString());
-            JSONArray maxdimJson = JSONArray.parseArray(mbr.get("maxdim").toString());
-            JSONArray mindimJson = JSONArray.parseArray(mbr.get("mindim").toString());
-            float[] maxdim = new float[maxdimJson.size()];
-            float[] mindim = new float[mindimJson.size()];
-            for(int j = 0; j < maxdim.length; j++) {
-                maxdim[j] = Float.valueOf(maxdimJson.get(j).toString());
-                mindim[j] = Float.valueOf(mindimJson.get(j).toString());
-            }
-            MBR newMbr = new MBR(mindim, maxdim);
-            Key key = new Key(id, newMbr);
-            key.setNode(node);
-            String childnode = keyJson.get("childnode").toString();
-            if(!childnode.equals("{}")) {
-                childnode = JSONObject.parseObject(keyJson.get("childnode").toString()).get("Node").toString();
-                key.setChildNode(dfsCreateTree(childnode));
-            }
-            node.addKey(key);
-        }
-        return node;
     }
 }

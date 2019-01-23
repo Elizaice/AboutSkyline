@@ -1,5 +1,9 @@
 package MyRtree;
 
+import security.PaillierPK;
+import security.PaillierSK;
+
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,9 +92,9 @@ public class Node {
             MBR mbrN1 = N1.mbr();
             MBR mbrN2 = N2.mbr();
 
-            float enlargementInN1 = mbrN1.combine(nextKey.getMbr()).getArea();
-            float enlargementInN2 = mbrN2.combine(nextKey.getMbr()).getArea();
-            if(enlargementInN1 <= enlargementInN2) {
+            BigInteger enlargementInN1 = mbrN1.combine(nextKey.getMbr()).getArea();
+            BigInteger enlargementInN2 = mbrN2.combine(nextKey.getMbr()).getArea();
+            if(enlargementInN1.compareTo(enlargementInN2)<=0) {
                 nextKey.setNode(N1);
                 N1.keys.add(nextKey);
             } else {
@@ -108,12 +112,12 @@ public class Node {
         return new Node[]{N1, N2} ;
     }
 
-    //
+    // 选择冗余面积最大的两个点作为扩展后的两个节点中的点
     public Key[] pickSeeds(){
         Key k1 = null;
         Key k2 = null;
         //最大冗余面积
-        float maxExpandableArea = -1;
+        int maxExpandableArea = -1;
         List<Key> keys = this.keys;
         int count = keys.size();
         for(int i = 0 ; i < count - 1; i++){
@@ -121,9 +125,11 @@ public class Node {
             for(int j = i+1; j < count ; j++){
                 Key tmp_k2 = keys.get(j);
                 MBR combineRegion = tmp_k1.getMbr().combine(tmp_k2.getMbr());
-                float expandableArea = combineRegion.getArea()-tmp_k1.getMbr().getArea()-tmp_k2.getMbr().getArea();
-                if(expandableArea>maxExpandableArea){
-                    maxExpandableArea = expandableArea;
+//                int expandableArea = combineRegion.getArea()-tmp_k1.getMbr().getArea()-tmp_k2.getMbr().getArea();
+                BigInteger expandableArea = combineRegion.getArea().subtract(tmp_k1.getMbr().getArea()).subtract(tmp_k2.getMbr().getArea());
+                int ex = Integer.parseInt(expandableArea.toString());
+                if(ex>maxExpandableArea){
+                    maxExpandableArea = ex;
                     k1 = tmp_k1;
                     k2 = tmp_k2;
                 }
@@ -133,20 +139,23 @@ public class Node {
     }
     // 计算把每个条目加入每个组之后面积的增量，选择两个组面积增量差最大的条目索引
     public Key pickNext(Node N1, Node N2){
-        float maxExpandableArea = -1;
+        int maxExpandableArea = -1;
         Key K1 = null;
-
         MBR mbrN1 = N1.mbr();
         MBR mbrN2 = N2.mbr();
 
         for(Key key : this.keys) {
             MBR mbrExpandN1 = mbrN1.combine(key.getMbr());
             MBR mbrExpandN2 = mbrN2.combine(key.getMbr());
-            float diff1 = mbrExpandN1.getArea() - mbrN1.getArea();
-            float diff2 = mbrExpandN2.getArea() - mbrN2.getArea();
-            float expandableArea = Math.abs(diff1 - diff2);
-            if(expandableArea > maxExpandableArea) {
-                maxExpandableArea = expandableArea;
+//            float diff1 = mbrExpandN1.getArea() - mbrN1.getArea();
+//            float diff2 = mbrExpandN2.getArea() - mbrN2.getArea();
+            BigInteger diff1 = mbrExpandN1.getArea().subtract(mbrN1.getArea());
+            BigInteger diff2 = mbrExpandN2.getArea().subtract(mbrN2.getArea());
+//            float expandableArea = Math.abs(diff1 - diff2);
+            BigInteger expandableArea = diff1.subtract(diff2).abs();
+            int ex = Integer.parseInt(expandableArea.toString());
+            if(ex > maxExpandableArea) {
+                maxExpandableArea = ex;
                 K1 = key;
             }
         }
@@ -171,6 +180,17 @@ public class Node {
             MBR totMbr = keys.get(0).getMbr();
             for(int i = 1 ; i < keys.size();i++){
                 totMbr = totMbr.combine(keys.get(i).getMbr());
+            }
+            return totMbr;
+        }
+        return null;
+    }
+
+    public MBR secMbr(PaillierPK pk, PaillierSK sk) {
+        if(keys.size() > 0) {
+            MBR totMbr = keys.get(0).getMbr();
+            for(int i = 1 ; i < keys.size();i++){
+                totMbr = totMbr.secCombine(keys.get(i).getMbr(), pk, sk);
             }
             return totMbr;
         }

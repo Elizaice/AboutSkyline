@@ -1,9 +1,10 @@
 package MyRtree;
 
 
+import java.math.BigInteger;
 
 public class test {
-    public static float[][] f = {
+    public static int[][] f = {
             {4,400},
             {24,380},
             {14,340},
@@ -18,8 +19,14 @@ public class test {
     };
     public static void main(String[] args){
         Rtree tree = new Rtree(3,1);
+        BigInteger[][] BigF = new BigInteger[f.length][f[0].length];
+        for(int i = 0 ; i< f.length ; i++){
+            for(int j = 0 ; j < f[i].length ; j++){
+                BigF[i][j] = new BigInteger(Integer.toString(f[i][j]));
+            }
+        }
         for(int i = 0 ; i < f.length;i++){
-            tree.insert(i,f[i]);
+            tree.insert(i,BigF[i]);
         }
         printTree(tree.getRoot());
 
